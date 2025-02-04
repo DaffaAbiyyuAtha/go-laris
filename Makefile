@@ -1,4 +1,4 @@
-host ?= 103.93.58.89
+host ?= localhost
 port ?= 54321
 user ?= postgres
 pass ?= 1
