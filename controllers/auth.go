@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"go-laris/dtos"
 	"go-laris/lib"
 	"go-laris/repository"
@@ -8,10 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func User(ctx *gin.Context) {
+func AuthLogin(ctx *gin.Context) {
 	var user dtos.User
 	ctx.Bind(&user)
 	found := repository.FindOneUserByEmail(user.Email)
+
+	fmt.Println(found, "sini")
 
 	if found == (dtos.User{}) {
 		lib.HandlerUnauthorized(ctx, "Wrong Email")

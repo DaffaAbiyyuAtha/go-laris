@@ -6,6 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AuthUser(rg *gin.RouterGroup) {
-	rg.POST("", controllers.User)
+func Auth(rg *gin.RouterGroup) {
+	rg.POST("/login", controllers.AuthLogin)
+	rg.POST("/register", controllers.CreateUsers)
+
 }
