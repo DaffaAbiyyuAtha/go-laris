@@ -9,14 +9,13 @@ import (
 
 func main() {
 	r := gin.Default()
-	
-	
-    corsConfig := cors.DefaultConfig()
-    corsConfig.AllowAllOrigins = true
-    corsConfig.AllowHeaders = []string{
-        "Origin", "Content-Type", "Authorization", "Content-Length",
-    }
-    r.Use(cors.New(corsConfig))
+
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowHeaders = []string{
+		"Origin", "Content-Type", "Authorization", "Content-Length",
+	}
+	r.Use(cors.New(corsConfig))
 	router.RouterCombain(r)
-	r.Run("8080")
+	r.Run(":8080")
 }

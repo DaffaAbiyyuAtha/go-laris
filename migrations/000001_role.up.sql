@@ -1,6 +1,7 @@
 CREATE TABLE "role"(
     "id" serial primary key,
-    "owner" varchar(50),
-    "admin" varchar(50),
-    "user" varchar(50)
+    "name" VARCHAR(50)
+    -- "owner" varchar(50),
+    -- "admin" varchar(50),
+    -- "user" varchar(50)
 );

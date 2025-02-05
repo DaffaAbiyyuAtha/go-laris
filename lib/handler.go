@@ -17,26 +17,26 @@ func HandlerOK(c *gin.Context, msg string, data any, pageInfo any) {
 
 func HandlerNotfound(c *gin.Context, msg string) {
 	c.JSON(http.StatusNotFound, Respont{
-		Success:  false,
-		Message:  msg,
+		Success: false,
+		Message: msg,
 	})
 }
 
 func HandlerUnauthorized(c *gin.Context, msg string) {
 	c.JSON(http.StatusUnauthorized, Respont{
-		Success:  false,
-		Message:  msg,
+		Success: false,
+		Message: msg,
 	})
 }
 
 func HandlerBadReq(c *gin.Context, msg string) {
 	c.JSON(http.StatusBadRequest, Respont{
-		Success:  false,
-		Message:  msg,
+		Success: false,
+		Message: msg,
 	})
 }
 
-func HandlerMaxFile(c *gin.Context, msg string){
+func HandlerMaxFile(c *gin.Context, msg string) {
 	c.JSON(http.StatusRequestEntityTooLarge, Respont{
 		Success: false,
 		Message: msg,
