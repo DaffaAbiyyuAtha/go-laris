@@ -7,10 +7,6 @@ type User struct {
 	RoleId   int    `json:"roleId" form:"roleId" db:"role_id"`
 }
 
-type Profile struct {
-	Id int `json:"id"`
-}
-
 type Token struct {
 	Token string `json:"token"`
 }

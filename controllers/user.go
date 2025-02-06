@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"go-laris/dtos"
 	"go-laris/lib"
 	"go-laris/repository"
@@ -11,18 +10,38 @@ import (
 )
 
 func CreateUsers(c *gin.Context) {
-	newUser := dtos.User{}
-
-	if err := c.ShouldBind(&newUser); err != nil {
-		lib.HandlerBadReq(c, "Invalid input data")
+	account := dtos.JoinRegist{}
+	if err := c.ShouldBind(&account); err != nil {
+		lib.HandlerBadReq(c, err.Error())
 		return
 	}
 
-	if _, err := govalidator.ValidateStruct(newUser); err != nil {
+	if _, err := govalidator.ValidateStruct(account); err != nil {
 		lib.HandlerBadReq(c, "Validation error: "+err.Error())
 		return
 	}
-	addUser := repository.CreateUser(newUser)
-	fmt.Println(addUser)
-	lib.HandlerOK(c, "User created successfully", nil, addUser)
+	profile, err := repository.CreateUser(account)
+	if *account.Email == "" && account.Password == "" && profile.FullName == "" {
+		lib.HandlerBadReq(c, "Data bad request")
+		return
+	}
+
+	if err != nil {
+		lib.HandlerBadReq(c, err.Error())
+		return
+	}
+
+	lib.HandlerOK(c, "Register User success", nil, gin.H{
+		"id":       profile.Id,
+		"fullname": profile.FullName,
+		"email":    account.Email,
+		"role_id":  account.RoleId,
+	})
+}
+
+func FindAllUser(c *gin.Context) {
+	user := repository.FindAllUser()
+
+	lib.HandlerOK(c, "List All User", user, nil)
+
 }

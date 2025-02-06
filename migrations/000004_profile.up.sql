@@ -1,5 +1,6 @@
 CREATE TABLE "profile"(
     "id" serial primary key,
+    "pictrue" VARCHAR(255),
     "fullname" VARCHAR(255),
     "province" VARCHAR(255),
     "city" VARCHAR(255),
