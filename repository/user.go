@@ -82,3 +82,64 @@ func FindOneUserByEmail(email string) dtos.User {
 	}
 	return user
 }
+
+func FindOneProfile(id int) (dtos.Profile, error) {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	rows, err := db.Query(context.Background(),
+		`select * from "profile" where "user_id" = $1`, id,
+	)
+	if err != nil {
+		return dtos.Profile{}, err
+	}
+	profile, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[dtos.Profile])
+	if err != nil {
+		return dtos.Profile{}, err
+	}
+	return profile, nil
+}
+
+func FindOneUser(id int) dtos.User {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	rows, _ := db.Query(
+		context.Background(),
+		`SELECT * FROM "user" ORDER BY "id" DESC`,
+	)
+	users, err := pgx.CollectRows(rows, pgx.RowToStructByPos[dtos.User])
+
+	fmt.Println(users)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	user := dtos.User{}
+	for _, v := range users {
+		if v.Id == id {
+			user = v
+		}
+	}
+	return user
+}
+
+func UpdateProfileImage(data dtos.Profile, id int) (dtos.Profile, error) {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	sql := `UPDATE profile SET picture = $1 WHERE user_id=$2 returning *`
+
+	row, err := db.Query(context.Background(), sql, data.Picture, id)
+	if err != nil {
+		return dtos.Profile{}, nil
+	}
+
+	profile, err := pgx.CollectOneRow(row, pgx.RowToStructByName[dtos.Profile])
+	if err != nil {
+		return dtos.Profile{}, nil
+	}
+
+	return profile, nil
+}
