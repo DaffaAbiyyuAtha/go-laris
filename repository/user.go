@@ -13,7 +13,7 @@ func CreateUser(joinRegist dtos.JoinRegist) (*dtos.Profile, error) {
 	db := lib.DB()
 	defer db.Close(context.Background())
 
-	joinRegist.Password = lib.Encrypt(joinRegist.Password)
+	joinRegist.Password, _ = lib.Encrypt(joinRegist.Password)
 
 	var userId int
 	err := db.QueryRow(
@@ -31,11 +31,11 @@ func CreateUser(joinRegist dtos.JoinRegist) (*dtos.Profile, error) {
 	}
 	err = db.QueryRow(
 		context.Background(),
-		`INSERT INTO "profile" ("pictrue", "fullname", "province", "city", "postal_code", "country", "mobile", "address","user_id")VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9) RETURNING id, pictrue, fullname, province,city,postal_code,country,mobile,address,user_id`,
-		joinRegist.Results.Picture, joinRegist.Results.FullName, joinRegist.Results.Province, joinRegist.Results.City, joinRegist.Results.PostalCode, joinRegist.Results.Country, joinRegist.Results.Mobile, joinRegist.Results.Address, userId,
+		`INSERT INTO "profile" ("picture", "fullname", "province", "city", "postal_code","gender", "country", "mobile", "address","user_id")VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9, $10) RETURNING id, picture, fullname, province,city,postal_code,gender,country,mobile,address,user_id`,
+		joinRegist.Results.Picture, joinRegist.Results.FullName, joinRegist.Results.Province, joinRegist.Results.City, joinRegist.Results.PostalCode, joinRegist.Results.Gender, joinRegist.Results.Country, joinRegist.Results.Mobile, joinRegist.Results.Address, userId,
 	).Scan(
 		&profile.Id, &profile.Picture, &profile.FullName, &profile.Province,
-		&profile.City, &profile.PostalCode, &profile.Country, &profile.Mobile, &profile.Address, &profile.UserId,
+		&profile.City, &profile.PostalCode, &profile.Gender, &profile.Country, &profile.Mobile, &profile.Address, &profile.UserId,
 	)
 
 	if err != nil {
@@ -125,20 +125,31 @@ func FindOneUser(id int) dtos.User {
 	return user
 }
 
-func UpdateProfileImage(data dtos.Profile, id int) (dtos.Profile, error) {
+func UpdateProfile(data dtos.Profile, id int) (dtos.Profile, error) {
 	db := lib.DB()
 	defer db.Close(context.Background())
 
-	sql := `UPDATE profile SET picture = $1 WHERE user_id=$2 returning *`
+	sql := `UPDATE "profile" 
+                SET ("picture", "fullname", "province", "city", "postal_code","gender", "country", "mobile", "address")  =
+                ($1,$2, $3, $4, $5, $6,$7, $8, $9)
+			    WHERE "user_id" = $10
+				RETURNING *`
 
-	row, err := db.Query(context.Background(), sql, data.Picture, id)
-	if err != nil {
-		return dtos.Profile{}, nil
-	}
+	fmt.Println("Executing query:", sql)
+	fmt.Printf("Values: %+v\n", data)
 
-	profile, err := pgx.CollectOneRow(row, pgx.RowToStructByName[dtos.Profile])
+	row := db.QueryRow(context.Background(), sql,
+		data.Picture, data.FullName, data.Province, data.City,
+		data.PostalCode, data.Gender, data.Country, data.Mobile, data.Address, id,
+	)
+
+	var profile dtos.Profile
+	err := row.Scan(
+		&profile.Id, &profile.Picture, &profile.FullName, &profile.Province,
+		&profile.City, &profile.PostalCode, &profile.Gender, &profile.Country, &profile.Mobile, &profile.Address, &profile.UserId,
+	)
 	if err != nil {
-		return dtos.Profile{}, nil
+		return dtos.Profile{}, fmt.Errorf("failed to update profile: %v", err)
 	}
 
 	return profile, nil

@@ -9,6 +9,7 @@ import (
 
 func main() {
 	r := gin.Default()
+	r.Static("/img/profile", "./img/profile")
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true

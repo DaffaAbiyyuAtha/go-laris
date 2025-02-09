@@ -39,6 +39,7 @@ func CreateUsers(c *gin.Context) {
 		"id":       profile.Id,
 		"fullname": profile.FullName,
 		"email":    account.Email,
+		"gender":   profile.Gender,
 		"role_id":  account.RoleId,
 	})
 }
@@ -55,63 +56,60 @@ func UpdateProfile(c *gin.Context) {
 	var form dtos.Profile
 	var user dtos.User
 
-	err := c.Bind(&form)
-	errUser := c.Bind(&user)
-	data, _ := repository.FindOneProfile(id)
-	dataProfile := repository.FindOneUser(id)
-
-	if err != nil {
+	if err := c.Bind(&form); err != nil {
 		lib.HandlerBadReq(c, "Invalid input data")
 		return
 	}
 
-	if errUser != nil {
+	if err := c.Bind(&user); err != nil {
 		lib.HandlerBadReq(c, "Failed user")
+		fmt.Println(err)
 		return
 	}
-
-	lib.HandlerOK(c, "Profile Found", nil, gin.H{
-		"profile": data,
-		"user":    dataProfile,
-	})
-}
-
-func UploadProfileImage(c *gin.Context) {
-	id := c.GetInt("userId")
-	fmt.Println(id)
 
 	file, err := c.FormFile("image")
+	var img *string
+
+	if err == nil {
+		allowExt := map[string]bool{".jpg": true, ".jpeg": true, ".png": true}
+		fileExt := strings.ToLower(filepath.Ext(file.Filename))
+		if !allowExt[fileExt] {
+			lib.HandlerBadReq(c, "Invalid file extension")
+			return
+		}
+
+		image := uuid.New().String() + fileExt
+		root := "./img/profile/"
+
+		if err := c.SaveUploadedFile(file, root+image); err != nil {
+			lib.HandlerBadReq(c, "Upload image failed")
+			return
+		}
+
+		imgUrl := "http://localhost:8080/img/profile/" + image
+		img = &imgUrl
+	}
+
+	profileData := dtos.Profile{
+		Picture: img,
+	}
+
+	_, err = repository.UpdateProfile(profileData, id)
 	if err != nil {
-		lib.HandlerBadReq(c, "no files uploaded")
-		return
-	}
-
-	allowExt := map[string]bool{".jpg": true, ".jpeg": true, ".png": true}
-	fileExt := strings.ToLower(filepath.Ext(file.Filename))
-	if !allowExt[fileExt] {
-		lib.HandlerBadReq(c, "invalid file extension")
-		return
-	}
-
-	image := uuid.New().String() + fileExt
-
-	root := "./img/profile/"
-
-	if err := c.SaveUploadedFile(file, root+image); err != nil {
+		lib.HandlerBadReq(c, "Update profile failed")
 		fmt.Println(err)
-
-		lib.HandlerBadReq(c, "Upload image failed")
-
 		return
 	}
 
-	img := "http://localhost:8080/img/profile/" + image
-	result, err := repository.UpdateProfileImage(dtos.Profile{Picture: &img}, id)
-
+	profile, err := repository.FindOneProfile(id)
 	if err != nil {
-		lib.HandlerBadReq(c, "Update image failed")
+		lib.HandlerBadReq(c, "Failed to find profile")
 		return
 	}
+	userData := repository.FindOneUser(id)
 
-	lib.HandlerOK(c, "Upload image success", nil, result)
+	lib.HandlerOK(c, "Profile updated successfully", nil, gin.H{
+		"profile": profile,
+		"user":    userData,
+	})
 }
