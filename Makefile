@@ -1,8 +1,8 @@
-host ?= 103.93.58.89
+host ?= localhost
 port ?= 54321
 user ?= postgres
 pass ?= 1
-db ?= event_organizer
+db ?= laris
 
 migrate\:init:
 	PGPASSWORD=$(pass) psql -h $(host) -U$(user) -d postgres -p $(port) -c "create database $(db);"
