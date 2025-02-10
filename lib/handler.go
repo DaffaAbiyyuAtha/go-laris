@@ -42,3 +42,17 @@ func HandlerMaxFile(c *gin.Context, msg string) {
 		Message: msg,
 	})
 }
+
+func HandlerStatusInternalServerError(c *gin.Context, msg string) {
+	c.JSON(http.StatusInternalServerError, Respont{
+		Success: false,
+		Message: msg,
+	})
+}
+
+func HandlerStatusConflict(c *gin.Context, msg string) {
+	c.JSON(http.StatusConflict, Respont{
+		Success: false,
+		Message: msg,
+	})
+}

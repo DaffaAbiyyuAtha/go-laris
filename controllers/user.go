@@ -12,29 +12,30 @@ import (
 	"github.com/google/uuid"
 )
 
-func CreateUsers(c *gin.Context) {
+func CreateUsers(ctx *gin.Context) {
 	account := dtos.JoinRegist{}
-	if err := c.ShouldBind(&account); err != nil {
-		lib.HandlerBadReq(c, err.Error())
+	if err := ctx.ShouldBind(&account); err != nil {
+		lib.HandlerBadReq(ctx, err.Error())
 		return
 	}
 
 	if _, err := govalidator.ValidateStruct(account); err != nil {
-		lib.HandlerBadReq(c, "Validation error: "+err.Error())
+		lib.HandlerBadReq(ctx, "Validation error: "+err.Error())
 		return
 	}
+
 	profile, err := repository.CreateUser(account)
 	if *account.Email == "" && account.Password == "" && profile.FullName == "" {
-		lib.HandlerBadReq(c, "DataerHandlerBadReq")
+		lib.HandlerBadReq(ctx, "DataerHandlerBadReq")
 		return
 	}
 
 	if err != nil {
-		lib.HandlerBadReq(c, err.Error())
+		lib.HandlerBadReq(ctx, err.Error())
 		return
 	}
 
-	lib.HandlerOK(c, "Register User success", nil, gin.H{
+	lib.HandlerOK(ctx, "Register User success", nil, gin.H{
 		"id":       profile.Id,
 		"fullname": profile.FullName,
 		"email":    account.Email,
@@ -43,28 +44,28 @@ func CreateUsers(c *gin.Context) {
 	})
 }
 
-func FindAllUser(c *gin.Context) {
+func FindAllUser(ctx *gin.Context) {
 	user := repository.FindAllUser()
 
-	lib.HandlerOK(c, "List All User", user, nil)
+	lib.HandlerOK(ctx, "List All User", user, nil)
 
 }
 
-func UpdateProfile(c *gin.Context) {
+func UpdateProfile(ctx *gin.Context) {
 
-	id := c.GetInt("userId")
+	id := ctx.GetInt("userId")
 	if id == 0 {
-		lib.HandlerBadReq(c, "User ID not found")
+		lib.HandlerBadReq(ctx, "User ID not found")
 		return
 	}
 
 	var form dtos.Profile
-	if err := c.ShouldBind(&form); err != nil {
-		lib.HandlerBadReq(c, "Invalid input data")
+	if err := ctx.ShouldBind(&form); err != nil {
+		lib.HandlerBadReq(ctx, "Invalid input data")
 		return
 	}
 
-	file, err := c.FormFile("image")
+	file, err := ctx.FormFile("image")
 	var img *string
 
 	if err == nil {
@@ -72,15 +73,15 @@ func UpdateProfile(c *gin.Context) {
 		fileExt := strings.ToLower(filepath.Ext(file.Filename))
 
 		if !allowExt[fileExt] {
-			lib.HandlerBadReq(c, "Invalid file extension")
+			lib.HandlerBadReq(ctx, "Invalid file extension")
 			return
 		}
 
 		image := uuid.New().String() + fileExt
-		root := "../img/profile"
+		root := "./img/profile"
 
-		if err := c.SaveUploadedFile(file, root+image); err != nil {
-			lib.HandlerBadReq(c, "Upload image failed")
+		if err := ctx.SaveUploadedFile(file, root+image); err != nil {
+			lib.HandlerBadReq(ctx, "Upload image failed")
 			return
 		}
 
@@ -104,19 +105,19 @@ func UpdateProfile(c *gin.Context) {
 
 	_, err = repository.UpdateProfile(profileData, id)
 	if err != nil {
-		lib.HandlerBadReq(c, "Update profile failed")
+		lib.HandlerBadReq(ctx, "Update profile failed")
 		return
 	}
 
 	profile, err := repository.FindOneProfile(id)
 	if err != nil {
-		lib.HandlerBadReq(c, "Failed to find profile")
+		lib.HandlerBadReq(ctx, "Failed to find profile")
 		return
 	}
 
 	userData := repository.FindOneUser(id)
 
-	lib.HandlerOK(c, "Profile updated successfully", nil, gin.H{
+	lib.HandlerOK(ctx, "Profile updated successfully", nil, gin.H{
 		"profile": profile,
 		"user":    userData,
 	})

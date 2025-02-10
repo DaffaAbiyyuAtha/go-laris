@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CategoriesController(c *gin.Context) {
+func CategoriesController(ctx *gin.Context) {
 	categories := repository.FindAllCategories()
 
-	lib.HandlerOK(c, "List All Categories", categories, nil)
+	lib.HandlerOK(ctx, "List All Categories", categories, nil)
 
 }
