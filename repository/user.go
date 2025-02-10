@@ -130,14 +130,11 @@ func UpdateProfile(data dtos.Profile, id int) (dtos.Profile, error) {
 	defer db.Close(context.Background())
 
 	sql := `UPDATE "profile" 
-                SET ("picture", "fullname", "province", "city", "postal_code","gender", "country", "mobile", "address")  =
-                ($1,$2, $3, $4, $5, $6,$7, $8, $9)
-			    WHERE "user_id" = $10
-				RETURNING *`
-
-	fmt.Println("Executing query:", sql)
-	fmt.Printf("Values: %+v\n", data)
-
+	SET ("picture", "fullname", "province", "city", "postal_code","gender", "country", "mobile", "address")  =
+	($1,$2, $3, $4, $5, $6,$7, $8, $9)
+	WHERE "user_id" = $10
+	RETURNING *`
+	fmt.Printf("Executing SQL with values: %+v\n", data)
 	row := db.QueryRow(context.Background(), sql,
 		data.Picture, data.FullName, data.Province, data.City,
 		data.PostalCode, data.Gender, data.Country, data.Mobile, data.Address, id,

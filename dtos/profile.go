@@ -3,11 +3,11 @@ package dtos
 type Profile struct {
 	Id         int     `json:"id"`
 	Picture    *string `json:"picture"  db:"picture"`
-	FullName   string  `json:"fullName"  valid:"type(string),required" form:"fullname" db:"fullname"`
+	FullName   string  `json:"fullname"  valid:"type(string),required" form:"fullname" db:"fullname"`
 	Province   *string `json:"province" db:"province" form:"province"`
 	City       *string `json:"city" db:"city" form:"city"`
-	PostalCode *int    `json:"postalCode" db:"postal_code" form:"postalCode"`
-	Gender     *int    `json:"gender" db:"gender" form:"gender"`
+	PostalCode int     `json:"postalCode" db:"postal_code" form:"postalCode"`
+	Gender     int     `json:"gender" db:"gender" form:"gender"`
 	Country    *string `json:"country" db:"country" form:"country"`
 	Mobile     *string `json:"mobile" db:"mobile" form:"mobile"`
 	Address    *string `json:"address" db:"address" form:"address"`

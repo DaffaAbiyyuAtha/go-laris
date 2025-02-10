@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"go-laris/dtos"
 	"go-laris/lib"
 	"go-laris/repository"
@@ -52,18 +51,16 @@ func FindAllUser(c *gin.Context) {
 }
 
 func UpdateProfile(c *gin.Context) {
-	id := c.GetInt("userId")
-	var form dtos.Profile
-	var user dtos.User
 
-	if err := c.Bind(&form); err != nil {
-		lib.HandlerBadReq(c, "Invalid input data")
+	id := c.GetInt("userId")
+	if id == 0 {
+		lib.HandlerBadReq(c, "User ID not found")
 		return
 	}
 
-	if err := c.Bind(&user); err != nil {
-		lib.HandlerBadReq(c, "Failed user")
-		fmt.Println(err)
+	var form dtos.Profile
+	if err := c.ShouldBind(&form); err != nil {
+		lib.HandlerBadReq(c, "Invalid input data")
 		return
 	}
 
@@ -73,31 +70,41 @@ func UpdateProfile(c *gin.Context) {
 	if err == nil {
 		allowExt := map[string]bool{".jpg": true, ".jpeg": true, ".png": true}
 		fileExt := strings.ToLower(filepath.Ext(file.Filename))
+
 		if !allowExt[fileExt] {
 			lib.HandlerBadReq(c, "Invalid file extension")
 			return
 		}
 
 		image := uuid.New().String() + fileExt
-		root := "./img/profile/"
+		root := "../img/profile"
 
 		if err := c.SaveUploadedFile(file, root+image); err != nil {
 			lib.HandlerBadReq(c, "Upload image failed")
 			return
 		}
 
-		imgUrl := "http://localhost:8080/img/profile/" + image
+		baseURL := "http://localhost:8080"
+		imgUrl := baseURL + "/img/profile/" + image
 		img = &imgUrl
 	}
 
 	profileData := dtos.Profile{
-		Picture: img,
+		Picture:    img,
+		FullName:   form.FullName,
+		Province:   form.Province,
+		City:       form.City,
+		PostalCode: form.PostalCode,
+		Gender:     form.Gender,
+		Country:    form.Country,
+		Mobile:     form.Mobile,
+		Address:    form.Address,
+		UserId:     id,
 	}
 
 	_, err = repository.UpdateProfile(profileData, id)
 	if err != nil {
 		lib.HandlerBadReq(c, "Update profile failed")
-		fmt.Println(err)
 		return
 	}
 
@@ -106,6 +113,7 @@ func UpdateProfile(c *gin.Context) {
 		lib.HandlerBadReq(c, "Failed to find profile")
 		return
 	}
+
 	userData := repository.FindOneUser(id)
 
 	lib.HandlerOK(c, "Profile updated successfully", nil, gin.H{
