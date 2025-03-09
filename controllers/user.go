@@ -39,7 +39,6 @@ func CreateUsers(ctx *gin.Context) {
 		"id":       profile.Id,
 		"fullname": profile.FullName,
 		"email":    account.Email,
-		"gender":   profile.Gender,
 		"role_id":  account.RoleId,
 	})
 }

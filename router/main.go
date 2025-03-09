@@ -7,5 +7,5 @@ func RouterCombain(r *gin.Engine) {
 	Auth(r.Group("/auth"))
 	User(r.Group("/user"))
 	Wishlist(r.Group("/wishlist"))
-
+	Product(r.Group("/product"))
 }

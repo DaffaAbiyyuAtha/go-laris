@@ -7,7 +7,7 @@ CREATE TABLE "profile"(
     "postal_code" INTEGER,
     "gender" INTEGER,
     "country" VARCHAR(50),
-    "mobile" VARCHAR(50),
+    "mobile" INTEGER,
     "address" VARCHAR(255),
     "user_id" INT REFERENCES "user"("id")
 );
