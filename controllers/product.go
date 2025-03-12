@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"go-laris/lib"
 	"go-laris/repository"
 	"log"
@@ -147,4 +148,24 @@ func FindProduct(ctx *gin.Context) {
 			Message: "Product Not Found",
 		})
 	}
+}
+
+func ListAllFilterProduct(c *gin.Context) {
+	product := c.Query("product")
+
+	products, err := repository.GetAllProductWithFilters(product)
+	fmt.Println(err)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Product not found",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "Events Has Been Filtered",
+		Result:  products,
+	})
 }
