@@ -12,19 +12,10 @@ import (
 )
 
 func FindAllProduct(ctx *gin.Context) {
-	search := ctx.Query("search")
-	page, _ := strconv.Atoi(ctx.Query("page"))
-	limit, _ := strconv.Atoi(ctx.Query("limit"))
 
-	if page < 1 {
-		page = 1
-	}
-	if limit < 1 {
-		limit = 9999
-	}
+	listProduct := repository.FindAllProduct()
 
-	listProduct := repository.FindAllProduct(search, page, limit)
-	lib.HandlerOK(ctx, "Find All Product Success", nil, listProduct)
+	lib.HandlerOK(ctx, "Find All Product Success", listProduct, nil)
 }
 
 // func CreateProduct(ctx *gin.Context) {
@@ -168,4 +159,32 @@ func ListAllFilterProduct(c *gin.Context) {
 		Message: "Events Has Been Filtered",
 		Result:  products,
 	})
+}
+
+func ListAllProductWithCategory(c *gin.Context) {
+
+	categoryIdParam := c.Query("categoriesId")
+	var categoryId *int
+
+	if categoryIdParam != "" {
+		id, err := strconv.Atoi(categoryIdParam)
+		if err != nil {
+			lib.HandlerBadReq(c, "categoryId must be numeric")
+			return
+		}
+		categoryId = &id
+	}
+
+	products, err := repository.GetAllProductWithCategory(categoryId)
+	if err != nil {
+		lib.HandlerStatusInternalServerError(c, "Failed to retrieve product data")
+		return
+	}
+
+	if len(products) == 0 {
+		lib.HandlerNotfound(c, "Produk not found")
+		return
+	}
+
+	lib.HandlerOK(c, "Successfully retrieved product data", products, nil)
 }

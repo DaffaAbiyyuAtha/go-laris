@@ -28,14 +28,42 @@ func FindOneProductById(id int) (dtos.Product, error) {
 	return product, nil
 }
 
-func FindAllProduct(search string, limit int, page int) []dtos.Product {
+func FindAllProduct() []dtos.Product {
 	db := lib.DB()
 	defer db.Close(context.Background())
-	offset := (page - 1) * limit
 
-	sql := `SELECT * FROM "product" WHERE "name_product" ILIKE '%' || $1 || '%' ORDER BY "name_product" DESC OFFSET $2 LIMIT $3`
-	rows, _ := db.Query(context.Background(), sql, search, offset, limit)
+	sql := `SELECT 
+    p.id, 
+    p.name_product, 
+    p.price, 
+    p.discount, 
+    p.description, 
+    p.categories_id, 
+    c.name_categories, 
+    COALESCE(ARRAY_AGG(pi.image) FILTER (WHERE pi.image IS NOT NULL), '{}') AS images
+FROM product p
+JOIN product_images pi 
+    ON p.id = pi.product_id
+JOIN category c
+    ON c.id = p.categories_id
+GROUP BY 
+    p.id, 
+    p.name_product, 
+    p.price, 
+    p.discount, 
+    p.description, 
+    p.categories_id, 
+    c.name_categories
+ORDER BY p.name_product DESC;
+`
+	rows, err := db.Query(context.Background(), sql)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	product, err := pgx.CollectRows(rows, pgx.RowToStructByPos[dtos.Product])
+
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -202,4 +230,56 @@ func GetAllProductWithFilters(product string) ([]models.Product, error) {
 	}
 
 	return products, err
+}
+
+func GetAllProductWithCategory(categoriesId *int) ([]models.Product, error) {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	sql := `SELECT 
+	    p.id, 
+	    p.name_product, 
+	    p.price, 
+	    p.discount, 
+	    p.description, 
+	    p.categories_id, 
+	    c.name_categories, 
+	    COALESCE(ARRAY_AGG(pi.image) FILTER (WHERE pi.image IS NOT NULL), '{}') AS image
+		FROM product p
+		LEFT JOIN product_images pi 
+		    ON p.id = pi.product_id
+		JOIN category c
+		    ON c.id = p.categories_id
+		WHERE ($1::INT IS NULL OR p.categories_id = $1::INT)
+		GROUP BY 
+		    p.id, 
+		    p.name_product, 
+		    p.price, 
+		    p.discount, 
+		    p.description, 
+		    p.categories_id, 
+		    c.name_categories
+		ORDER BY p.id DESC;`
+
+	var param interface{}
+	if categoriesId != nil {
+		param = int32(*categoriesId)
+	} else {
+		param = nil
+	}
+
+	rows, err := db.Query(context.Background(), sql, param)
+	if err != nil {
+		fmt.Println("Query error:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	products, err := pgx.CollectRows(rows, pgx.RowToStructByPos[models.Product])
+	if err != nil {
+		fmt.Println("Parsing error:", err)
+		return nil, err
+	}
+
+	return products, nil
 }

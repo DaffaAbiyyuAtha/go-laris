@@ -12,6 +12,7 @@ func Product(rg *gin.RouterGroup) {
 	rg.GET("/filter", controllers.ListAllFilterProduct)
 	rg.GET("/home", controllers.ListProduct)
 	rg.GET("/:id", controllers.FindProduct)
+	rg.GET("/category", controllers.ListAllProductWithCategory)
 	rg.Use(middlewares.AuthMiddleware())
 	// rg.POST("/", controllers.CreateProduct)
 	rg.DELETE("/:id", controllers.DeleteProduct)
