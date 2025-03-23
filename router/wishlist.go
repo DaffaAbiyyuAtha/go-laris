@@ -9,9 +9,11 @@ import (
 
 func Wishlist(rg *gin.RouterGroup) {
 	rg.Use(middlewares.AuthMiddleware())
-	rg.GET("", controllers.FindAllWishlist)
+	// rg.GET("", controllers.FindAllWishlist)
 	rg.POST("/:id", controllers.CreateWishlist)
-	rg.GET("/:id", controllers.FindOneWishlist)
-	rg.DELETE("/:id", controllers.DeleteWishlist)
-
+	// rg.GET("/:id", controllers.FindOneWishlist)
+	rg.DELETE("/delete", controllers.DeleteWishlist)
+	rg.POST("/create", controllers.CreateNewWishlist)
+	rg.GET("/", controllers.FindWishlistbyProfileId)
+	rg.GET("/search", controllers.GetWishlistByProfileAndProductName)
 }

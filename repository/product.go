@@ -17,9 +17,24 @@ func FindOneProductById(id int) (dtos.Product, error) {
 
 	var product dtos.Product
 	err := db.QueryRow(context.Background(),
-		`SELECT id, image,name_product,price,discount,categories_id 
-         FROM "product" WHERE id = $1`, id,
-	).Scan(&product.Id, &product.Image, &product.NameProduct, &product.Price, &product.Discount, &product.CategoriesId)
+		`SELECT 
+			p.id, 
+			p.name_product, 
+			p.price, 
+			p.discount, 
+			p.description, 
+			p.categories_id, 
+			c.name_categories,
+			COALESCE(ARRAY_AGG(pi.image) FILTER (WHERE pi.image IS NOT NULL), '{}') AS image
+		FROM product p
+		LEFT JOIN product_images pi 
+		ON p.id = pi.product_id
+		JOIN category c
+		ON c.id = p.categories_id
+		WHERE p.id = $1
+		GROUP BY p.id, p.name_product, p.price, p.discount, p.description, p.categories_id, c.name_categories`,
+		id,
+	).Scan(&product.Id, &product.NameProduct, &product.Price, &product.Discount, &product.Description, &product.CategoriesId, &product.NameCategories, &product.Image)
 
 	if err != nil {
 		return dtos.Product{}, fmt.Errorf("failed to find product: %w", err)
@@ -69,11 +84,11 @@ func DeleteProduct(id int) error {
 
 	results, err := db.Exec(context.Background(), `DELETE FROM "product" WHERE "id" = $1`, id)
 	if err != nil {
-		return fmt.Errorf("failed to execute delete")
+		return fmt.Errorf("failed to execute delete: %w", err)
 	}
 
 	if results.RowsAffected() == 0 {
-		return fmt.Errorf("no user found")
+		return fmt.Errorf("no product found")
 	}
 	return nil
 }
@@ -91,7 +106,7 @@ func SeeAllProduct(page int, limit int) ([]dtos.Product, error) {
 				p.description, 
 				p.categories_id, 
 				c.name_categories, 
-				COALESCE(ARRAY_AGG(pi.image) FILTER (WHERE pi.image IS NOT NULL), '{}') AS images
+				COALESCE(ARRAY_AGG(pi.image) FILTER (WHERE pi.image IS NOT NULL), '{}') AS image
 			FROM product p
 			JOIN product_images pi 
 				ON p.id = pi.product_id
@@ -138,7 +153,7 @@ func FindOneProduct(id int) models.Product {
 			p.description, 
 			p.categories_id, 
 			c.name_categories,
-			COALESCE(ARRAY_AGG(pi.image) FILTER (WHERE pi.image IS NOT NULL), '{}') AS images
+			COALESCE(ARRAY_AGG(pi.image) FILTER (WHERE pi.image IS NOT NULL), '{}') AS image
 		FROM product p
 		JOIN product_images pi 
 		ON p.id = pi.product_id
@@ -178,7 +193,7 @@ func GetAllProductWithFilters(product string) ([]models.Product, error) {
 			p.description, 
 			p.categories_id, 
 			c.name_categories,
-			COALESCE(ARRAY_AGG(pi.image) FILTER (WHERE pi.image IS NOT NULL), '{}') AS images
+			COALESCE(ARRAY_AGG(pi.image) FILTER (WHERE pi.image IS NOT NULL), '{}') AS image
 		FROM product p
 		JOIN product_images pi 
 		ON p.id = pi.product_id
@@ -202,4 +217,19 @@ func GetAllProductWithFilters(product string) ([]models.Product, error) {
 	}
 
 	return products, err
+}
+
+func DeleteAllWishlistbyProductId(id int) error {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	results, err := db.Exec(context.Background(), `DELETE FROM wishlist WHERE product_id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("failed to execute delete: %w", err)
+	}
+
+	if results.RowsAffected() == 0 {
+		return fmt.Errorf("no product found")
+	}
+	return nil
 }

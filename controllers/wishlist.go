@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"go-laris/lib"
 	"go-laris/models"
 	"go-laris/repository"
 	"log"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -80,25 +82,140 @@ func CreateWishlist(ctx *gin.Context) {
 
 }
 
+// func DeleteWishlist(ctx *gin.Context) {
+// 	userId := ctx.GetInt("userId")
+
+// 	productId, err := strconv.Atoi(ctx.Param("id"))
+// 	if err != nil {
+// 		lib.HandlerBadReq(ctx, "Invalid Product Id")
+// 		return
+// 	}
+
+// 	err = repository.DeleteWishlist(userId, productId)
+// 	if err != nil {
+// 		if err.Error() == "wishlist item not found" {
+// 			lib.HandlerNotfound(ctx, "Wishlist Item Not Found")
+// 			return
+// 		}
+// 		lib.HandlerBadReq(ctx, "Failed To Detele Wishlist Item")
+
+// 		return
+// 	}
+// 	lib.HandlerOK(ctx, "Wishlist Item Deleted Successfully", nil, nil)
+
+// }
+
+func FindWishlistbyProfileId(ctx *gin.Context) {
+	profileId := ctx.GetInt("userId")
+
+	dataWishlist, err := repository.FindWishlistByProfileId(profileId)
+	if err != nil {
+		fmt.Println("Error:", err)
+		ctx.JSON(http.StatusNotFound, lib.Respont{
+			Success: false,
+			Message: "Wishlist Not Found",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "Wishlist Found",
+		Result:  dataWishlist,
+	})
+}
+
+func CreateNewWishlist(ctx *gin.Context) {
+	profileId := ctx.GetInt("userId")
+
+	productIdStr := ctx.PostForm("product_id")
+	productId, err := strconv.Atoi(productIdStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Invalid product_id",
+		})
+		return
+	}
+
+	err = repository.CreateWishlist(profileId, productId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, lib.Respont{
+			Success: false,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, lib.Respont{
+		Success: true,
+		Message: "Wishlist created successfully",
+	})
+}
+
 func DeleteWishlist(ctx *gin.Context) {
-	userId := ctx.GetInt("userId")
+	profileId := ctx.GetInt("userId")
+	fmt.Println("Profile ID:", profileId)
 
-	productId, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		lib.HandlerBadReq(ctx, "Invalid Product Id")
+	productID := ctx.Query("product_id")
+	fmt.Println("Product ID dari query:", productID)
+	if productID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "product_id is required",
+		})
 		return
 	}
 
-	err = repository.DeleteWishlist(userId, productId)
+	productId, err := strconv.Atoi(productID)
 	if err != nil {
-		if err.Error() == "wishlist item not found" {
-			lib.HandlerNotfound(ctx, "Wishlist Item Not Found")
-			return
-		}
-		lib.HandlerBadReq(ctx, "Failed To Detele Wishlist Item")
-
+		ctx.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Invalid product_id",
+		})
 		return
 	}
-	lib.HandlerOK(ctx, "Wishlist Item Deleted Successfully", nil, nil)
 
+	fmt.Println("Product ID yang mau dihapus:", productId)
+	err = repository.DeleteWishlist(profileId, productId)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, lib.Respont{
+			Success: false,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "Wishlist deleted successfully",
+	})
+}
+
+func GetWishlistByProfileAndProductName(ctx *gin.Context) {
+	profileId := ctx.GetInt("userId")
+	productName := ctx.Query("product_name")
+
+	if productName == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "product_name is required",
+		})
+		return
+	}
+
+	wishlist, err := repository.GetWishlistByProfileAndProductName(profileId, productName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Wishlist found",
+		"result":  wishlist,
+	})
 }

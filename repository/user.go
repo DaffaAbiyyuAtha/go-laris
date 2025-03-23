@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-laris/dtos"
 	"go-laris/lib"
+	"go-laris/models"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -150,4 +151,25 @@ func UpdateProfile(data dtos.Profile, id int) (dtos.Profile, error) {
 	}
 
 	return profile, nil
+}
+
+func FindUser(id int) (models.User, error) {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	sql := `SELECT * FROM "user" WHERE id = $1`
+
+	query, err := db.Query(context.Background(), sql, id)
+
+	if err != nil {
+		return models.User{}, err
+	}
+
+	users, err := pgx.CollectOneRow(query, pgx.RowToStructByPos[models.User])
+
+	if err != nil {
+		return models.User{}, err
+	}
+
+	return users, err
 }

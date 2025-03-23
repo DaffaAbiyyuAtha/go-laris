@@ -90,21 +90,25 @@ func DeleteProduct(ctx *gin.Context) {
 		return
 	}
 
-	dataProduct, err := repository.FindOneProductById(id)
-
+	product, err := repository.FindOneProductById(id)
 	if err != nil {
-		lib.HandlerBadReq(ctx, "Invalid Product ID")
+		lib.HandlerNotfound(ctx, "Product Not Found")
+		return
+	}
+
+	err = repository.DeleteAllWishlistbyProductId(id)
+	if err != nil {
+		lib.HandlerNotfound(ctx, "Wishlist Not Found")
 		return
 	}
 
 	err = repository.DeleteProduct(id)
 	if err != nil {
-		lib.HandlerNotfound(ctx, "Id Not Found")
+		lib.HandlerNotfound(ctx, "Product Not Found")
 		return
 	}
 
-	lib.HandlerOK(ctx, "Product deleted successfully", nil, dataProduct)
-
+	lib.HandlerOK(ctx, "Product deleted successfully", nil, product)
 }
 
 func ListProduct(c *gin.Context) {
