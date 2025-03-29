@@ -4,5 +4,3 @@ CREATE TABLE "user"(
     "password" VARCHAR(255),
     "role_id" INT REFERENCES "role"("id")
 );
-
-

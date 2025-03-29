@@ -111,23 +111,36 @@ func emptyIntToNil(i *int) *int {
 	return i
 }
 
-func UpdateProfilePicture(data dtos.Profile, id int) (dtos.Profile, error) {
+func UpdateProfilePicture(fullName, province, city, postalCode, gender, country, mobile, address, picturePath string, userId int) (dtos.Profile, error) {
 	db := lib.DB()
 	defer db.Close(context.Background())
 
-	sql := `UPDATE "profile" 
-        SET "picture" = $1 
-        WHERE "user_id" = $2 
-        RETURNING id, picture, fullname, province, city, postal_code, gender, country, mobile, address, user_id`
+	sql := `
+		UPDATE "profile"
+		SET "fullname" = $1, "province" = $2, "city" = $3, "postal_code" = $4,
+			"gender" = $5, "country" = $6, "mobile" = $7, "address" = $8, "picture" = $9
+		WHERE "user_id" = $10
+		RETURNING id, fullname, province, city, postal_code, gender, country, mobile, address, picture, user_id
+	`
 
-	row, err := db.Query(context.Background(), sql, data.Picture, id)
-	if err != nil {
-		return dtos.Profile{}, nil
-	}
+	var profile dtos.Profile
+	err := db.QueryRow(context.Background(), sql, fullName, province, city, postalCode, gender, country, mobile, address, picturePath, userId).Scan(
+		&profile.Id,
+		&profile.FullName,
+		&profile.Province,
+		&profile.City,
+		&profile.PostalCode,
+		&profile.Gender,
+		&profile.Country,
+		&profile.Mobile,
+		&profile.Address,
+		&profile.Picture,
+		&profile.UserId,
+	)
 
-	profile, err := pgx.CollectOneRow(row, pgx.RowToStructByName[dtos.Profile])
 	if err != nil {
-		return dtos.Profile{}, nil
+		fmt.Println("Error updating profile:", err)
+		return dtos.Profile{}, err
 	}
 
 	return profile, nil

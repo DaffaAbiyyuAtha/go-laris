@@ -104,6 +104,15 @@ func UpdateProfilePicture(c *gin.Context) {
 		return
 	}
 
+	fullName := c.DefaultPostForm("fullname", "")
+	province := c.DefaultPostForm("province", "")
+	city := c.DefaultPostForm("city", "")
+	postalCode := c.DefaultPostForm("postalCode", "")
+	gender := c.DefaultPostForm("gender", "")
+	country := c.DefaultPostForm("country", "")
+	mobile := c.DefaultPostForm("mobile", "")
+	address := c.DefaultPostForm("address", "")
+
 	if oldProfile.Picture != nil {
 		oldPicturePath := "./img/profile/" + filepath.Base(*oldProfile.Picture)
 		if err := os.Remove(oldPicturePath); err != nil && !os.IsNotExist(err) {
@@ -111,59 +120,42 @@ func UpdateProfilePicture(c *gin.Context) {
 		}
 	}
 
+	var picturePath string
 	file, err := c.FormFile("picture")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, lib.Respont{
-			Success: false,
-			Message: "No file",
-		})
-		return
+	if err == nil {
+		cek := map[string]bool{".jpg": true, ".png": true, ".jpeg": true}
+		ext := strings.ToLower(filepath.Ext(file.Filename))
+		if !cek[ext] {
+			c.JSON(http.StatusBadRequest, lib.Respont{
+				Success: false,
+				Message: "Invalid file format",
+			})
+			return
+		}
+
+		picture := uuid.New().String() + ext
+		savePicture := "./img/profile/"
+		if err := c.SaveUploadedFile(file, savePicture+picture); err != nil {
+			c.JSON(http.StatusInternalServerError, lib.Respont{
+				Success: false,
+				Message: "Failed to save file",
+			})
+			return
+		}
+
+		picturePath = "http://localhost:8100/picture/" + picture
 	}
 
-	fullname := c.PostForm("fullname")
-	if fullname == "" {
-		fullname = oldProfile.FullName
-	}
-
-	cek := map[string]bool{".jpg": true, ".png": true, ".jpeg": true}
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	if !cek[ext] {
-		c.JSON(http.StatusBadRequest, lib.Respont{
-			Success: false,
-			Message: "Failed to Upload File",
-		})
-		return
-	}
-
-	picture := uuid.New().String() + ext
-	savePicture := "./img/profile/"
-	if err := c.SaveUploadedFile(file, savePicture+picture); err != nil {
-		c.JSON(http.StatusInternalServerError, lib.Respont{
-			Success: false,
-			Message: "Failed to Save File",
-		})
-		return
-	}
-
-	root := "http://localhost:8100/picture/" + picture
-	_, err = repository.UpdateProfilePicture(dtos.Profile{Picture: &root, FullName: fullname}, id)
+	updatedProfile, err := repository.UpdateProfilePicture(
+		fullName, province, city, postalCode, gender, country, mobile, address, picturePath, id,
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, lib.Respont{
 			Success: false,
-			Message: "Failed to update profile picture",
+			Message: "Failed to update profile",
 		})
 		return
 	}
-
-	profile, err := repository.FindProfileByUserId(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, lib.Respont{
-			Success: false,
-			Message: "Failed to get profile",
-		})
-		return
-	}
-
 	user, err := repository.FindUser(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, lib.Respont{
@@ -175,9 +167,9 @@ func UpdateProfilePicture(c *gin.Context) {
 
 	c.JSON(http.StatusOK, lib.Respont{
 		Success: true,
-		Message: "Profile picture updated successfully",
+		Message: "Profile updated successfully",
 		Result: gin.H{
-			"profile": profile,
+			"profile": updatedProfile,
 			"user":    user,
 		},
 	})

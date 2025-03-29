@@ -5,6 +5,7 @@ import (
 	"go-laris/dtos"
 	"go-laris/lib"
 	"go-laris/repository"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,12 +13,25 @@ import (
 func AuthLogin(ctx *gin.Context) {
 	var user dtos.User
 	ctx.Bind(&user)
-	found := repository.FindOneUserByEmail(user.Email)
 
+	if len(user.Password) < 8 {
+		ctx.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Password must be at least 8 characters long",
+			Result:  nil,
+		})
+		return
+	}
+
+	found := repository.FindOneUserByEmail(user.Email)
 	fmt.Println(found, "sini")
 
 	if found == (dtos.User{}) {
-		lib.HandlerUnauthorized(ctx, "Wrong Email")
+		ctx.JSON(http.StatusUnauthorized, lib.Respont{
+			Success: false,
+			Message: "Wrong Email",
+			Result:  nil,
+		})
 		return
 	}
 
@@ -25,9 +39,16 @@ func AuthLogin(ctx *gin.Context) {
 
 	if isVerified {
 		JWT := lib.GenerateUserTokenById(found.Id)
-		lib.HandlerOK(ctx, "Login Success", nil, dtos.Token{Token: JWT})
+		ctx.JSON(http.StatusOK, lib.Respont{
+			Success: true,
+			Message: "Login Success",
+			Result:  dtos.Token{Token: JWT},
+		})
 	} else {
-		lib.HandlerUnauthorized(ctx, "Wrong Password")
-
+		ctx.JSON(http.StatusUnauthorized, lib.Respont{
+			Success: false,
+			Message: "Wrong Password",
+			Result:  nil,
+		})
 	}
 }

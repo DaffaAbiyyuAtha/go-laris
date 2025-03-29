@@ -9,6 +9,6 @@ CREATE TABLE "profile"(
     "country" VARCHAR(50),
     "mobile" BIGINT,
     "address" VARCHAR(255),
-    "user_id" INT REFERENCES "user"("id")
+    "user_id" INT REFERENCES "user"("id") ON DELETE CASCADE
 );
 

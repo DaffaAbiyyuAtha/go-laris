@@ -1,10 +1,13 @@
 package controllers
 
 import (
+	"fmt"
 	"go-laris/dtos"
 	"go-laris/lib"
 	"go-laris/repository"
+	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
@@ -13,33 +16,75 @@ import (
 )
 
 func CreateUsers(ctx *gin.Context) {
-	account := dtos.JoinRegist{}
+	account := dtos.UserRegist{}
 	if err := ctx.ShouldBind(&account); err != nil {
-		lib.HandlerBadReq(ctx, err.Error())
+		ctx.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Failed to bind data: " + err.Error(),
+		})
+		return
+	}
+
+	if len(account.Password) < 8 {
+		ctx.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Password must be at least 8 characters long",
+		})
 		return
 	}
 
 	if _, err := govalidator.ValidateStruct(account); err != nil {
-		lib.HandlerBadReq(ctx, "Validation error: "+err.Error())
+		ctx.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: lib.FormatValidationError(err.Error()),
+		})
 		return
 	}
 
-	profile, err := repository.CreateUser(account)
-	if *account.Email == "" && account.Password == "" && profile.FullName == "" {
-		lib.HandlerBadReq(ctx, "DataerHandlerBadReq")
+	if account.Email == account.Password {
+		ctx.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Password cannot be the same as Email",
+		})
 		return
 	}
 
+	existingUser, _ := repository.FindOneUserByEmailForRegist(account.Email)
+	if existingUser.Email != "" {
+		ctx.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Email already registered",
+		})
+		return
+	}
+
+	joinAccount := dtos.JoinRegist{
+		Email:    &account.Email,
+		Password: account.Password,
+		RoleId:   account.RoleId,
+		Results: dtos.Profile{
+			FullName: account.FullName,
+		},
+	}
+
+	profile, err := repository.CreateUser(joinAccount)
 	if err != nil {
-		lib.HandlerBadReq(ctx, err.Error())
+		ctx.JSON(http.StatusInternalServerError, lib.Respont{
+			Success: false,
+			Message: err.Error(),
+		})
 		return
 	}
 
-	lib.HandlerOK(ctx, "Register User success", nil, gin.H{
-		"id":       profile.Id,
-		"fullname": profile.FullName,
-		"email":    account.Email,
-		"role_id":  account.RoleId,
+	ctx.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "Register User success",
+		Result: gin.H{
+			"id":       profile.Id,
+			"fullname": profile.FullName,
+			"email":    account.Email,
+			"role_id":  account.RoleId,
+		},
 	})
 }
 
@@ -119,5 +164,105 @@ func UpdateProfile(ctx *gin.Context) {
 	lib.HandlerOK(ctx, "Profile updated successfully", nil, gin.H{
 		"profile": profile,
 		"user":    userData,
+	})
+}
+
+func GetUsersfoOwner(ctx *gin.Context) {
+	users, err := repository.FindUsersByRoleforOwner()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, lib.Respont{
+			Success: false,
+			Message: "Failed to fetch users: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "Find All Users successfully",
+		Result:  users,
+	})
+}
+
+func GetUsersByFullNamefoOwner(ctx *gin.Context) {
+	fullName := ctx.Query("fullname")
+
+	users, err := repository.FindManageUsersByFullName(fullName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, lib.Respont{
+			Success: false,
+			Message: "Failed to fetch users: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "Users fetched successfully",
+		Result:  users,
+	})
+}
+
+func DeleteUserforOwner(ctx *gin.Context) {
+	userID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Invalid user ID",
+		})
+		return
+	}
+
+	profiles, err := repository.DeleteUserforOwner(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, lib.Respont{
+			Success: false,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "User deleted successfully",
+		Result:  profiles,
+	})
+}
+
+func GetUsersfoAdmin(ctx *gin.Context) {
+	users, err := repository.FindUsersByRoleforAdmin()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, lib.Respont{
+			Success: false,
+			Message: "Failed to fetch users: " + err.Error(),
+		})
+		return
+	}
+
+	fmt.Println(users)
+
+	ctx.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "Find All Users successfully",
+		Result:  users,
+	})
+}
+
+func GetUsersByFullNamefoAdmin(ctx *gin.Context) {
+	fullName := ctx.Query("fullname")
+
+	users, err := repository.FindManageUsersByFullNamefoAdmin(fullName)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, lib.Respont{
+			Success: false,
+			Message: "Failed to fetch users: " + err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "Users fetched successfully",
+		Result:  users,
 	})
 }

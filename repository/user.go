@@ -173,3 +173,254 @@ func FindUser(id int) (models.User, error) {
 
 	return users, err
 }
+
+func FindOneUserByEmailForRegist(email string) (dtos.UserRegist, error) {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	sql := `
+		SELECT u.id, u.email, u.password, u.role_id, p.fullname
+		FROM "user" u
+		LEFT JOIN "profile" p ON u.id = p.user_id
+		WHERE u.email = $1
+		LIMIT 1
+	`
+
+	row := db.QueryRow(context.Background(), sql, email)
+
+	var user dtos.UserRegist
+	err := row.Scan(
+		&user.Id,
+		&user.Email,
+		&user.Password,
+		&user.RoleId,
+		&user.FullName,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return dtos.UserRegist{}, nil
+		}
+		return dtos.UserRegist{}, err
+	}
+
+	return user, nil
+}
+
+func FindUsersByRoleforOwner() ([]models.ManagerOwner, error) {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	sql := `
+		SELECT 
+			u.id AS user_id, 
+			u.email, 
+			p.fullname, 
+			r.name AS role_name
+		FROM "user" u
+		LEFT JOIN "profile" p ON u.id = p.user_id
+		LEFT JOIN "role" r ON u.role_id = r.id
+		WHERE r.name IN ('admin', 'user')
+	`
+
+	rows, err := db.Query(context.Background(), sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.ManagerOwner
+
+	for rows.Next() {
+		var user models.ManagerOwner
+		err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.FullName,
+			&user.RoleName,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func FindManageUsersByFullName(fullName string) ([]models.ManagerOwner, error) {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	sql := `
+		SELECT 
+			u.id AS user_id, 
+			u.email, 
+			p.fullname, 
+			r.name AS role_name
+		FROM "user" u
+		LEFT JOIN "profile" p ON u.id = p.user_id
+		LEFT JOIN "role" r ON u.role_id = r.id
+		WHERE r.name IN ('admin', 'user') 
+		AND p.fullname ILIKE '%' || $1 || '%'
+	`
+
+	rows, err := db.Query(context.Background(), sql, fullName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.ManagerOwner
+
+	for rows.Next() {
+		var user models.ManagerOwner
+		err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.FullName,
+			&user.RoleName,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func DeleteUserforOwner(userID int) ([]dtos.Profile, error) {
+	db := lib.DB()
+
+	tx, err := db.Begin(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(context.Background())
+
+	sqlGetProfiles := `
+		SELECT id, picture, fullname, province, city, postal_code, gender, country, mobile, address, user_id
+		FROM "profile"
+		WHERE user_id = $1
+	`
+	rows, err := tx.Query(context.Background(), sqlGetProfiles, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var profiles []dtos.Profile
+	for rows.Next() {
+		var profile dtos.Profile
+		err := rows.Scan(
+			&profile.Id, &profile.Picture, &profile.FullName, &profile.Province,
+			&profile.City, &profile.PostalCode, &profile.Gender, &profile.Country,
+			&profile.Mobile, &profile.Address, &profile.UserId,
+		)
+		if err != nil {
+			return nil, err
+		}
+		profiles = append(profiles, profile)
+	}
+
+	sqlDeleteWishlist := `DELETE FROM "wishlist" WHERE profile_id IN (SELECT id FROM "profile" WHERE user_id = $1) RETURNING id`
+	var deletedWishlistID int
+	_ = tx.QueryRow(context.Background(), sqlDeleteWishlist, userID).Scan(&deletedWishlistID)
+
+	sqlDeleteUser := `DELETE FROM "user" WHERE id = $1 RETURNING id`
+	var deletedUserID int
+	err = tx.QueryRow(context.Background(), sqlDeleteUser, userID).Scan(&deletedUserID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return profiles, nil
+}
+
+func FindUsersByRoleforAdmin() ([]models.ManagerOwner, error) {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	sql := `
+		SELECT 
+			u.id AS user_id, 
+			u.email, 
+			p.fullname, 
+			r.name AS role_name
+		FROM "user" u
+		LEFT JOIN "profile" p ON u.id = p.user_id
+		LEFT JOIN "role" r ON u.role_id = r.id
+		WHERE r.name = 'user'
+	`
+
+	rows, err := db.Query(context.Background(), sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.ManagerOwner
+
+	for rows.Next() {
+		var user models.ManagerOwner
+		err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.FullName,
+			&user.RoleName,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func FindManageUsersByFullNamefoAdmin(fullName string) ([]models.ManagerOwner, error) {
+	db := lib.DB()
+	defer db.Close(context.Background())
+
+	sql := `
+		SELECT 
+			u.id AS user_id, 
+			u.email, 
+			p.fullname, 
+			r.name AS role_name
+		FROM "user" u
+		LEFT JOIN "profile" p ON u.id = p.user_id
+		LEFT JOIN "role" r ON u.role_id = r.id
+		WHERE r.name IN ('user') 
+		AND p.fullname ILIKE '%' || $1 || '%'
+	`
+
+	rows, err := db.Query(context.Background(), sql, fullName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.ManagerOwner
+
+	for rows.Next() {
+		var user models.ManagerOwner
+		err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.FullName,
+			&user.RoleName,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
