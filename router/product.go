@@ -9,6 +9,7 @@ import (
 
 func Product(rg *gin.RouterGroup) {
 	rg.GET("/", controllers.FindAllProduct)
+	rg.GET("/page", controllers.ListProductName)
 	rg.GET("/filter", controllers.ListAllFilterProduct)
 	rg.GET("/home", controllers.ListProduct)
 	rg.GET("/:id", controllers.FindProduct)

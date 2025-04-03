@@ -173,3 +173,29 @@ func ListAllFilterProduct(c *gin.Context) {
 		Result:  products,
 	})
 }
+
+func ListProductName(c *gin.Context) {
+	search := c.Query("search")
+	page, _ := strconv.Atoi(c.Query("page"))
+	limit, _ := strconv.Atoi(c.Query("limit"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 100
+	}
+	products, err := repository.GetFilterProductWithNameProduct(search, page, limit)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, lib.Respont{
+			Success: false,
+			Message: "Failed to find Products",
+		})
+		return
+	}
+	log.Println("Produk yang diambil:", products)
+	c.JSON(http.StatusOK, lib.Respont{
+		Success: true,
+		Message: "List Products",
+		Result:  products,
+	})
+}
