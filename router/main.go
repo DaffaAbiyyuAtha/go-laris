@@ -9,4 +9,5 @@ func RouterCombain(r *gin.Engine) {
 	Wishlist(r.Group("/wishlist"))
 	Product(r.Group("/product"))
 	ProfileRouter(r.Group("/profile"))
+	OrderRouter(r.Group("/order"))
 }

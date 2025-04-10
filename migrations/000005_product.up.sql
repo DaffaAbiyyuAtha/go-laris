@@ -6,4 +6,3 @@ CREATE TABLE "product"(
     "description" TEXT,
     "categories_id" INT REFERENCES "category"("id")
 );
-
