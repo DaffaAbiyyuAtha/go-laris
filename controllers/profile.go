@@ -59,7 +59,9 @@ func UpdateUserProfileController(ctx *gin.Context) {
 	fmt.Println("User ID:", userID)
 
 	var profile dtos.Profile
+
 	if err := ctx.ShouldBind(&profile); err != nil {
+		fmt.Println(err)
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"message": "Failed to bind data",
@@ -97,6 +99,7 @@ func UpdateProfilePicture(c *gin.Context) {
 
 	oldProfile, err := repository.FindProfileByUserId(id)
 	if err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, lib.Respont{
 			Success: false,
 			Message: "Failed to get old profile",
@@ -135,6 +138,7 @@ func UpdateProfilePicture(c *gin.Context) {
 
 		picture := uuid.New().String() + ext
 		savePicture := "./img/profile/"
+
 		if err := c.SaveUploadedFile(file, savePicture+picture); err != nil {
 			c.JSON(http.StatusInternalServerError, lib.Respont{
 				Success: false,
@@ -143,12 +147,13 @@ func UpdateProfilePicture(c *gin.Context) {
 			return
 		}
 
-		picturePath = "http://localhost:8100/picture/" + picture
+		picturePath = "http://localhost:8100/profile/picture/" + picture
 	}
 
 	updatedProfile, err := repository.UpdateProfilePicture(
 		fullName, province, city, postalCode, gender, country, mobile, address, picturePath, id,
 	)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, lib.Respont{
 			Success: false,
