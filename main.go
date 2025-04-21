@@ -9,7 +9,7 @@ import (
 
 func main() {
 	r := gin.Default()
-	r.Static("/picture", "./img/profile")
+	r.Static("/profile/picture", "./img/profile")
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = []string{"http://localhost:5173"}
